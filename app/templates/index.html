@@ -33,7 +33,8 @@
         method="post"
         hx-post="{{ url_for('main.post_message') }}"
         hx-target="#messages"
-        hx-swap="innerHTML">
+        hx-swap="innerHTML"
+        hx-on::after-request="this.reset()">
     <input type="hidden" name="conversation_id" value="{{ current_conversation.id }}">
     <textarea name="content" rows="2" placeholder="Type a message"></textarea>
     <button type="submit">Send</button>

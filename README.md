@@ -133,6 +133,11 @@ hx-post="/message"
 hx-target="#messages"
 hx-swap="innerHTML"
 ```
+## Download HTMX inside static/ folder
+curl -L https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js -o static/htmx.min.js
+
+## Use HTMX in the base template script
+<script src="{{ url_for('static', filename='htmx.min.js') }}"></script>
 
 ### Slow model loading
 
