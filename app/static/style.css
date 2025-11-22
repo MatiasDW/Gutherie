@@ -1,0 +1,56 @@
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.layout {
+  display: flex;
+  height: 100vh;
+}
+
+.sidebar {
+  width: 280px;
+  border-right: 1px solid #ddd;
+  padding: 1rem;
+  overflow-y: auto;
+}
+
+.chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+}
+
+#messages {
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.message {
+  margin-bottom: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+}
+
+.message.user {
+  background: #e3f2fd;
+}
+
+.message.bot {
+  background: #f1f8e9;
+}
+
+.message .meta {
+  font-size: 0.75rem;
+  color: #555;
+  margin-bottom: 0.15rem;
+}
+
+#message-form textarea {
+  width: 100%;
+  resize: vertical;
+}

@@ -1,0 +1,17 @@
+<div class="messages-list">
+  {% for m in messages %}
+    <div class="message {{ m.sender_type }}">
+      <div class="meta">
+        <span class="sender">
+          {% if m.sender_type == "user" %}
+            You
+          {% else %}
+            Bot
+          {% endif %}
+        </span>
+        <span class="time">{{ m.created_at.strftime("%H:%M") }}</span>
+      </div>
+      <div class="content">{{ m.content }}</div>
+    </div>
+  {% endfor %}
+</div>

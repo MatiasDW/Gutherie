@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="sidebar">
+  <h2>Conversations</h2>
+  <ul>
+    {% for conv in conversations %}
+      <li {% if conv.id == current_conversation.id %}class="active"{% endif %}>
+        {{ conv.title }}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <form method="post" action="{{ url_for('main.create_conversation') }}">
+    <input type="text" name="title" placeholder="New conversation title">
+    <button type="submit">Create</button>
+  </form>
+
+  {% include "_bots_sidebar.html" %}
+</div>
+
+<div class="chat">
+  <div id="messages"
+       hx-get="{{ url_for('main.messages_partial', conv_id=current_conversation.id) }}"
+       hx-trigger="load, every 3s"
+       hx-target="#messages"
+       hx-swap="innerHTML">
+    {% include "_messages.html" %}
+  </div>
+
+  <form id="message-form"
+        action="{{ url_for('main.post_message') }}"
+        method="post"
+        hx-post="{{ url_for('main.post_message') }}"
+        hx-target="#messages"
+        hx-swap="innerHTML">
+    <input type="hidden" name="conversation_id" value="{{ current_conversation.id }}">
+    <textarea name="content" rows="2" placeholder="Type a message"></textarea>
+    <button type="submit">Send</button>
+  </form>
+</div>
+{% endblock %}
