@@ -11,5 +11,15 @@
     <div class="layout">
       {% block content %}{% endblock %}
     </div>
+    <script>
+      // Clear the chat input after HTMX submits the form
+      document.body.addEventListener('htmx:afterRequest', function (evt) {
+        const trigger = evt.detail && evt.detail.elt;
+        if (!trigger || trigger.id !== 'message-form') return;
+        trigger.reset();
+        const textarea = trigger.querySelector('textarea');
+        if (textarea) textarea.focus();
+      }, false);
+    </script>
   </body>
 </html>

@@ -2,13 +2,13 @@ import os
 from flask import Flask
 from dotenv import load_dotenv
 
-# Import db and models from models module
-from .models import db, Conversation, Bot, Message, ConversationBot
+# I import the shared db instance and models
+from .models import db, Bot
 from .routes import bp as main_bp
 
 
 def create_app():
-    # Load env vars from .env so I do not hardcode secrets
+    # Load env vars from .env so I keep config outside the code
     load_dotenv()
 
     app = Flask(__name__)
@@ -16,28 +16,38 @@ def create_app():
     # Basic secret key for sessions
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret")
 
-    # DB connection, default to local sqlite file
-    db_url = os.environ.get("DATABASE_URL", "sqlite:///chatroom.db")
+    # Make sure the instance folder exists so SQLite has a stable place to live
+    os.makedirs(app.instance_path, exist_ok=True)
+
+    # Database config. Default to an absolute SQLite file under instance/ to avoid
+    # creating a new DB when the working directory changes.
+    default_db_path = os.path.join(app.instance_path, "chatroom.db")
+    db_url = os.environ.get("DATABASE_URL", f"sqlite:///{default_db_path}")
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-    # Attach SQLAlchemy to this app
+    # Attach SQLAlchemy to this Flask app instance
     db.init_app(app)
 
-    with app.app_context():
-        # Make sure tables exist in the DB
-        db.create_all()
-        # Seed default bots only if there are none
-        seed_default_bots()
-
-    # Register main blueprint with all routes
+    # Register main blueprint
     app.register_blueprint(main_bp)
+
+    # Create tables and seed default bots once at startup
+    with app.app_context():
+        # Important: importing models here makes sure metadata is loaded
+        print("DEBUG - calling db.create_all() on", app.config["SQLALCHEMY_DATABASE_URI"])
+        from .models import Conversation, Message, ConversationBot
+
+        # This creates the tables in chatroom.db if they do not exist
+        db.create_all()
+        # And this inserts the 4 default bots only if bots table is empty
+        seed_default_bots()
 
     return app
 
 
 def seed_default_bots():
-    # If there are already bots, do not seed again
+    # If there is already at least one bot, I skip the seed
     if Bot.query.count() > 0:
         return
 
@@ -45,30 +55,41 @@ def seed_default_bots():
         {
             "name": "EmailBot",
             "role": "email",
-            "system_prompt": "You are an assistant that writes and improves emails.",
-            "model_name": os.environ.get("DEFAULT_MODEL", "llama3"),
+            "system_prompt": (
+                "You help me draft and polish professional emails in clear English or Spanish, "
+                "keeping the tone friendly and concise."
+            ),
+            "model_name": "llama3",
         },
         {
             "name": "CodeBot",
             "role": "code",
-            "system_prompt": "You are a coding assistant that helps with programming questions.",
-            "model_name": os.environ.get("DEFAULT_MODEL", "llama3"),
+            "system_prompt": (
+                "You help me read, debug, and explain code. "
+                "Keep answers short and practical, with code blocks when needed."
+            ),
+            "model_name": "llama3",
         },
         {
             "name": "AccountingBot",
             "role": "accounting",
-            "system_prompt": "You are an accountant assistant that helps with invoices and numbers.",
-            "model_name": os.environ.get("DEFAULT_MODEL", "llama3"),
+            "system_prompt": (
+                "You answer basic accounting, invoicing, and tax questions. "
+                "Explain things step by step in simple language."
+            ),
+            "model_name": "llama3",
         },
         {
             "name": "JokeBot",
             "role": "joke",
-            "system_prompt": "You tell short, friendly, work appropriate jokes.",
-            "model_name": os.environ.get("DEFAULT_MODEL", "llama3"),
+            "system_prompt": (
+                "You tell short, harmless jokes. One or two lines max, family friendly."
+            ),
+            "model_name": "llama3",
         },
     ]
 
-    # Insert default bots into DB
+    # I persist the default bots into the database
     for b in default_bots:
         db.session.add(
             Bot(

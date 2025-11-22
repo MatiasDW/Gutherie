@@ -54,3 +54,17 @@ body {
   width: 100%;
   resize: vertical;
 }
+
+.bot-form {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.bot-form input,
+.bot-form select,
+.bot-form textarea {
+  width: 100%;
+  font: inherit;
+}

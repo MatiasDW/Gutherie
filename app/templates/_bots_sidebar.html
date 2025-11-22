@@ -24,4 +24,17 @@
       </li>
     {% endfor %}
   </ul>
+
+  <h3>Create bot</h3>
+  <form method="post" action="{{ url_for('main.create_bot') }}" class="bot-form">
+    <input type="text" name="name" placeholder="Name" required>
+    <input type="text" name="role" placeholder="Role (email, code, etc.)" required>
+    <select name="model_name">
+      <option value="llama3">llama3</option>
+      <option value="llama3.2">llama3.2</option>
+      <option value="mistral">mistral</option>
+    </select>
+    <textarea name="system_prompt" rows="3" placeholder="System prompt" required></textarea>
+    <button type="submit">Add bot</button>
+  </form>
 </div>

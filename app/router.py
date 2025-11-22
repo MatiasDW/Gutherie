@@ -27,5 +27,14 @@ class RouterBot:
                 if bot.role == role:
                     return bot
 
+        # Generic fallback: if a custom bot role/name is mentioned, prefer it
+        for bot in available_bots:
+            bot_role = (bot.role or "").lower()
+            bot_name = (bot.name or "").lower()
+            if bot_role and bot_role in lower:
+                return bot
+            if bot_name and bot_name in lower:
+                return bot
+
         # Fallback, if no rule matches I just pick the first attached bot
         return available_bots[0]

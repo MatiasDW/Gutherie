@@ -1,28 +1,27 @@
 # AI Chatroom
 
-This project provides a lightweight Flask-based chatroom interface connected to multiple local LLM bots powered by Ollama. Users can create conversations, attach bots, and receive AI-generated responses in real-time via HTMX.
+Small multi-bot chatroom built with Flask, HTMX, and SQLite, using local LLMs served by Ollama. Multiple bots (Email, Code, Accounting, Joke, plus any custom bots you add) share a chatroom; a RouterBot picks who answers each message.
 
 ## Features
-
-- Multiple bots per conversation (Accounting, Email, Coding, Jokes)
-- Local LLM inference through Ollama
-- Router system that automatically selects the correct bot based on intent
-- Option for manual bot selection
-- Auto-refresh messages using HTMX polling
-- Dockerized environment (Flask + Ollama)
-- SQLite local database for conversations, messages and bots
+- Multiple bots per conversation; attach/detach per conversation
+- Create custom bots with name, role, system prompt, and model
+- Change bot model via dropdown
+- RouterBot picks a bot by intent; fallback matches custom bot role/name if mentioned, then first attached
+- HTMX: send without full reload, auto-refresh messages
+- SQLite persistence for conversations, messages, bots, and conversation/bot links
+- Docker Compose for the web app and Ollama
 
 ## Project Structure
-
 ```
 app/
-  __init__.py
-  models.py
-  routes.py
-  router.py
+  __init__.py        # Flask factory, DB init, seed bots
+  models.py          # SQLAlchemy models
+  routes.py          # Routes and message handling
+  router.py          # RouterBot keyword/role/name routing
   templates/
-    index.html
-    _messages.html
+    index.html       # Main chat UI
+    _messages.html   # Messages partial
+    _bots_sidebar.html
   static/
     htmx.min.js
     styles.css
@@ -32,116 +31,84 @@ README.md
 ```
 
 ## Requirements
+- Docker and Docker Compose
+- Internet to pull Ollama image/model (one time)
+- Host Python not required; runs in containers
 
-- Docker and Docker Compose  
-- Ollama container running model llama3 (or others)  
-- Python 3.12 container side  
-- Flask, SQLAlchemy, HTMX
-
-## Running the Project
-
-### 1) Build
-
+## Environment Variables
+`.env` example (project root):
 ```
-docker-compose build
-```
-
-### 2) Run Containers
-
-```
-docker-compose up
+FLASK_APP=app:create_app
+FLASK_ENV=development
+DATABASE_URL=sqlite:////app/instance/chatroom.db
+OLLAMA_HOST=http://ollama:11434
+DEFAULT_MODEL=llama3
 ```
 
-Flask app URL:
-
+## First-Time Setup
+1) Clone the repo
 ```
-http://127.0.0.1:5000
+git clone https://github.com/MatiasDW/Gutherie.git fot https
+git clone git@github.com:MatiasDW/Gutherie.git fot ssh
+
+cd ai-chatroom
+```
+2) Create `.env` (see above)
+3) Ensure HTMX is local (already in `app/static/htmx.min.js`; if missing):
+```
+curl -L https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js -o app/static/htmx.min.js
 ```
 
-Ollama service runs at port 11434.
+## Run with Docker
+1) Build and start
+```
+docker compose up --build
+```
+Flask: `http://127.0.0.1:5000`  
+Ollama: `http://127.0.0.1:11434` (internal: `http://ollama:11434`)
 
-## Usage
+2) Pull the model in Ollama
+```
+docker compose exec ollama ollama pull llama3
+```
 
-### Create conversations
+3) Verify DB path
+```
+docker compose exec web python - <<'PY'
+from app import create_app, db
+app = create_app()
+with app.app_context():
+    print("DB URL:", db.engine.url)
+PY
+```
 
-Use the left sidebar to create or switch between conversations.
+## Using the App
+- Open `http://127.0.0.1:5000`
+- Create/select conversations
+- Attach/detach bots per conversation
+- Create custom bots (name, role, prompt, model) in the sidebar
+- Send messages; HTMX posts to `/message`, router picks a bot
+- Messages auto-refresh via HTMX polling
 
-### Attach bots
+## Router Logic
+- Keywords → roles:
+  - email/mail/subject/correo → `email`
+  - code/python/bug/function/error → `code`
+  - invoice/factura/tax/balance → `accounting`
+  - joke/chiste/funny/risa → `joke`
+- If no keyword rule matches, it tries any attached bot whose role or name appears in the message (works for custom bots).
+- Final fallback: first attached bot.
 
-You can add multiple bots with roles:
-
-- accounting  
-- email  
-- code  
-- joke
-
-Each bot may run a different model (llama3 etc).
-
-### Send messages
-
-Write your message at the bottom.  
-HTMX posts to `/message` and reloads the message list.
-
-If manual bot selection is enabled, you can choose which bot replies.
-
-## Router Behavior
-
-The router inspects the user message and matches:
-
-- "email", "correo", "subject" → email bot  
-- "code", "python", "bug" → code bot  
-- "invoice", "factura", "tax" → accounting bot  
-- "joke", "chiste", "funny" → joke bot  
-
-If nothing matches, it falls back to the first bot.
-
-## Database Schema
-
-**Conversations**  
-Store chat sessions.
-
-**Messages**  
-Fields:
-- conversation_id  
-- sender_type  
-- bot_id  
-- content  
-- created_at  
-
-**Bots**  
-Fields:  
-- name  
-- role  
-- model  
-- system_prompt  
+## Database Schema (high level)
+- `conversations`: id, title, created_at
+- `messages`: id, conversation_id, sender_type, bot_id (nullable), content, created_at
+- `bots`: id, name, role, model_name, system_prompt
+- `conversation_bots`: id, conversation_id, bot_id
 
 ## Troubleshooting
-
-### Messages only show after refresh
-
-This happens when HTMX is not loaded.  
-Ensure you are loading it locally:
-
-```
-<script src="/static/htmx.min.js"></script>
-```
-
-Also confirm the form has:
-
-```
-hx-post="/message"
-hx-target="#messages"
-hx-swap="innerHTML"
-```
-## Download HTMX inside static/ folder
-curl -L https://unpkg.com/htmx.org@1.9.12/dist/htmx.min.js -o static/htmx.min.js
-
-## Use HTMX in the base template script
-<script src="{{ url_for('static', filename='htmx.min.js') }}"></script>
-
-### Slow model loading
-
-CPU-only systems may take over a minute to load large models like LLaMA‑3‑8B.  
-Inference becomes faster after first load.
+- HTMX not working: ensure `app/static/htmx.min.js` exists and `base.html` includes it.
+- Ollama errors: `docker compose ps`; `docker compose exec ollama ollama pull llama3`; ensure bot model names exist.
+- DB path: default `/app/instance/chatroom.db` (`sqlite:////app/instance/chatroom.db`). Use an absolute path to avoid accidental new DB files.
 
 ## License
+You can adapt this project as needed for your own experiments or interview exercises.

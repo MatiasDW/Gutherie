@@ -34,7 +34,7 @@
         hx-post="{{ url_for('main.post_message') }}"
         hx-target="#messages"
         hx-swap="innerHTML"
-        hx-on::after-request="this.reset()">
+        hx-on::after-settle="this.reset(); const t = this.querySelector('textarea'); if (t) t.focus();">
     <input type="hidden" name="conversation_id" value="{{ current_conversation.id }}">
     <textarea name="content" rows="2" placeholder="Type a message"></textarea>
     <button type="submit">Send</button>
