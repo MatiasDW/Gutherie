@@ -1,18 +1,38 @@
 from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # Single db instance used by the whole app
 db = SQLAlchemy()
+
+
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    conversations = db.relationship("Conversation", back_populates="user", lazy=True, cascade="all, delete-orphan")
+
+    def set_password(self, raw_password: str):
+        self.password_hash = generate_password_hash(raw_password)
+
+    def check_password(self, raw_password: str) -> bool:
+        return check_password_hash(self.password_hash, raw_password)
 
 
 class Conversation(db.Model):
     __tablename__ = "conversations"
 
     id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     # Just a human readable title for the chat
     title = db.Column(db.String(120), nullable=False, default="New conversation")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    user = db.relationship("User", back_populates="conversations")
     # All messages that belong to this conversation
     messages = db.relationship("Message", backref="conversation", lazy=True)
     # Link table to know which bots are attached to this conversation
@@ -68,6 +88,8 @@ class Message(db.Model):
     )
     # If sender is a bot, this points to that bot, otherwise null
     bot_id = db.Column(db.Integer, db.ForeignKey("bots.id"), nullable=True)
+    # Quick relationship to read bot attributes on templates
+    bot = db.relationship("Bot", lazy="joined")
     # Just "user" or "bot"
     sender_type = db.Column(db.String(10), nullable=False)
     content = db.Column(db.Text, nullable=False)

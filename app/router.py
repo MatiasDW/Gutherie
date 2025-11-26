@@ -3,38 +3,66 @@ from .models import Bot
 
 
 class RouterBot:
-    # Tiny routing helper. I keep it simple and rule based.
-    def choose_bot(self, text: str, available_bots: List[Bot]) -> Optional[Bot]:
+    """
+    Simple, rule-based orchestrator that can involve multiple specialists.
+    """
+
+    ROLE_KEYWORDS = {
+        "project_owner": ["scope", "goal", "requirement", "story", "product", "stakeholder", "business"],
+        "project_manager": ["timeline", "deadline", "plan", "estimate", "risk", "milestone", "priority", "deliverable"],
+        "solution_architect": ["architecture", "design", "pattern", "scalable", "scalability", "security", "compliance", "integration"],
+        "devops": ["deploy", "deployment", "docker", "kubernetes", "infra", "infrastructure", "ci", "cd", "pipeline", "monitoring", "logging", "reliability"],
+        "data_engineer": ["pipeline", "ingest", "ingestion", "etl", "elt", "warehouse", "lake", "schema", "dbt"],
+        "data_scientist": ["model", "ml", "machine learning", "experiment", "analysis", "dataset", "feature", "prediction", "forecast"],
+        "backend_engineer": ["api", "endpoint", "backend", "service", "microservice", "database", "auth", "authorization", "logic"],
+        "database_engineer": ["sql", "database", "mysql", "postgres", "postgresql", "index", "query", "transaction", "migration", "schema"],
+        "frontend_engineer": ["ui", "ux", "frontend", "react", "component", "layout", "css", "design system", "accessibility"],
+    }
+
+    PRIORITY_ORDER = [
+        "orchestrator",
+        "project_manager",
+        "project_owner",
+        "solution_architect",
+        "backend_engineer",
+        "database_engineer",
+        "devops",
+        "data_engineer",
+        "data_scientist",
+        "frontend_engineer",
+    ]
+
+    def choose_bots(self, text: str, available_bots: List[Bot]) -> List[Bot]:
         if not available_bots:
-            return None
+            return []
 
         lower = text.lower()
-        role = None
+        selected_roles = set()
 
-        # Very naive keyword routing by intent
-        if any(k in lower for k in ["email", "mail", "subject", "correo"]):
-            role = "email"
-        elif any(k in lower for k in ["code", "bug", "python", "function", "error"]):
-            role = "code"
-        elif any(k in lower for k in ["invoice", "account", "tax", "balance", "factura"]):
-            role = "accounting"
-        elif any(k in lower for k in ["joke", "funny", "chiste", "risa"]):
-            role = "joke"
+        for role, keywords in self.ROLE_KEYWORDS.items():
+            if any(keyword in lower for keyword in keywords):
+                selected_roles.add(role)
 
-        # Try to match by role first
-        if role:
-            for bot in available_bots:
-                if bot.role == role:
-                    return bot
+        bots_by_role = {bot.role: bot for bot in available_bots}
 
-        # Generic fallback: if a custom bot role/name is mentioned, prefer it
+        # Pick best-matching specialist (exclude orchestrator from responses)
+        if selected_roles:
+            for role in self.PRIORITY_ORDER:
+                if role == "orchestrator":
+                    continue
+                if role in selected_roles:
+                    bot = bots_by_role.get(role)
+                    if bot:
+                        return [bot]
+
+        # Fallback preference: architect or backend as generalists
+        for fallback_role in ["solution_architect", "backend_engineer"]:
+            bot = bots_by_role.get(fallback_role)
+            if bot:
+                return [bot]
+
+        # Final fallback: first non-orchestrator, else first bot
         for bot in available_bots:
-            bot_role = (bot.role or "").lower()
-            bot_name = (bot.name or "").lower()
-            if bot_role and bot_role in lower:
-                return bot
-            if bot_name and bot_name in lower:
-                return bot
-
-        # Fallback, if no rule matches I just pick the first attached bot
-        return available_bots[0]
+            if bot.role != "orchestrator":
+                return [bot]
+        return available_bots[:1]

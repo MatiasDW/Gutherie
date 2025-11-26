@@ -1,25 +1,18 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <title>AI Chatroom</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <script src="{{ url_for('static', filename='htmx.min.js') }}"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  </head>
-  <body class="app">
-    <div class="layout">
-      {% block content %}{% endblock %}
-    </div>
-    <script>
-      // Clear the chat input after HTMX submits the form
-      document.body.addEventListener('htmx:afterRequest', function (evt) {
-        const trigger = evt.detail && evt.detail.elt;
-        if (!trigger || trigger.id !== 'message-form') return;
-        trigger.reset();
-        const textarea = trigger.querySelector('textarea');
-        if (textarea) textarea.focus();
-      }, false);
-    </script>
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <title>AI Chatroom</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="{{ url_for('static', filename='htmx.min.js') }}"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body class="app">
+  <div class="layout">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+
 </html>

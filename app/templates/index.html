@@ -1,13 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="sidebar">
+<div class="sidebar panel">
+  <div class="user-row">
+    <div class="user-email">{{ g.current_user.email }}</div>
+    <a class="pill-btn" href="{{ url_for('main.logout') }}">Logout</a>
+  </div>
   <h2>Conversations</h2>
   <ul>
     {% for conv in conversations %}
-      <li {% if conv.id == current_conversation.id %}class="active"{% endif %}>
-        {{ conv.title }}
-      </li>
+    <li {% if conv.id==current_conversation.id %}class="active" {% endif %}>
+      {{ conv.title }}
+    </li>
     {% endfor %}
   </ul>
 
@@ -19,22 +23,15 @@
   {% include "_bots_sidebar.html" %}
 </div>
 
-<div class="chat">
-  <div id="messages"
-       hx-get="{{ url_for('main.messages_partial', conv_id=current_conversation.id) }}"
-       hx-trigger="load, every 3s"
-       hx-target="#messages"
-       hx-swap="innerHTML">
+<div class="chat panel">
+  <div id="messages" hx-get="{{ url_for('main.messages_partial', conv_id=current_conversation.id) }}"
+    hx-trigger="load, every 10s" hx-target="#messages" hx-swap="innerHTML">
     {% include "_messages.html" %}
   </div>
 
-  <form id="message-form"
-        action="{{ url_for('main.post_message') }}"
-        method="post"
-        hx-post="{{ url_for('main.post_message') }}"
-        hx-target="#messages"
-        hx-swap="innerHTML"
-        hx-on::after-settle="this.reset(); const t = this.querySelector('textarea'); if (t) t.focus();">
+  <form id="message-form" action="{{ url_for('main.post_message') }}" method="post"
+    hx-post="{{ url_for('main.post_message') }}" hx-target="#messages" hx-swap="innerHTML"
+    hx-on="htmx:afterRequest: this.reset()">
     <input type="hidden" name="conversation_id" value="{{ current_conversation.id }}">
     <textarea name="content" rows="2" placeholder="Type a message"></textarea>
     <button type="submit">Send</button>
