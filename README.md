@@ -110,5 +110,4 @@ PY
 - Ollama errors: `docker compose ps`; `docker compose exec ollama ollama pull llama3`; ensure bot model names exist.
 - DB path: default `/app/instance/chatroom.db` (`sqlite:////app/instance/chatroom.db`). Use an absolute path to avoid accidental new DB files.
 
-## License
-You can adapt this project as needed for your own experiments or interview exercises.
+
